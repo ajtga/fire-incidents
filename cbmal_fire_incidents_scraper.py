@@ -64,27 +64,46 @@ def make_incident_id(row: dict[str, str]) -> str:
     return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:16]
 
 
-def load_html(url: str = SOURCE_URL, max_attempts: int = 4) -> str:
+def load_html(url: str = SOURCE_URL, max_attempts: int = 3) -> str:
+    import random
+
     last_error = None
 
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15"
+    ]
+    # Randomly select unique User-Agents for each attempt of this run
+    selected_agents = random.sample(user_agents, min(max_attempts, len(user_agents)))
+
     for attempt in range(1, max_attempts + 1):
+        if attempt - 1 < len(selected_agents):
+            user_agent = selected_agents[attempt - 1]
+        else:
+            user_agent = random.choice(user_agents)
+
         request = Request(
             url,
             headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/126.0 Safari/537.36"
-                ),
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "User-Agent": user_agent,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
                 "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "Cache-Control": "max-age=0",
             },
         )
 
         try:
             print(f"Fetching CBMAL page. Attempt {attempt}/{max_attempts}...")
 
-            with urlopen(request, timeout=60) as response:
+            with urlopen(request, timeout=15) as response:
                 return response.read().decode("utf-8", errors="replace")
 
         except HTTPError as exc:
@@ -98,7 +117,7 @@ def load_html(url: str = SOURCE_URL, max_attempts: int = 4) -> str:
             if attempt == max_attempts:
                 break
 
-            wait_seconds = attempt * 15
+            wait_seconds = attempt * 5
             print(
                 f"Temporary HTTP error {exc.code} while accessing CBMAL page. "
                 f"Retrying in {wait_seconds} seconds..."
@@ -111,7 +130,7 @@ def load_html(url: str = SOURCE_URL, max_attempts: int = 4) -> str:
             if attempt == max_attempts:
                 break
 
-            wait_seconds = attempt * 15
+            wait_seconds = attempt * 5
             print(
                 f"Network error while accessing CBMAL page: {exc}. "
                 f"Retrying in {wait_seconds} seconds..."
