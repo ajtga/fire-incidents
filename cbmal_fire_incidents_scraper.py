@@ -3,9 +3,11 @@ from __future__ import annotations
 import csv
 import hashlib
 import re
+import time
 from datetime import datetime, timezone
 from html import unescape
 from pathlib import Path
+from socket import timeout as SocketTimeout
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -62,34 +64,64 @@ def make_incident_id(row: dict[str, str]) -> str:
     return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:16]
 
 
-def load_html(url: str = SOURCE_URL) -> str:
-    request = Request(
-        url,
-        headers={
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/126.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-        },
+def load_html(url: str = SOURCE_URL, max_attempts: int = 4) -> str:
+    last_error = None
+
+    for attempt in range(1, max_attempts + 1):
+        request = Request(
+            url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/126.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            },
+        )
+
+        try:
+            print(f"Fetching CBMAL page. Attempt {attempt}/{max_attempts}...")
+
+            with urlopen(request, timeout=60) as response:
+                return response.read().decode("utf-8", errors="replace")
+
+        except HTTPError as exc:
+            last_error = exc
+
+            if exc.code not in {408, 429, 500, 502, 503, 504}:
+                raise RuntimeError(
+                    f"HTTP error while accessing CBMAL page: {exc.code} {exc.reason}"
+                ) from exc
+
+            if attempt == max_attempts:
+                break
+
+            wait_seconds = attempt * 15
+            print(
+                f"Temporary HTTP error {exc.code} while accessing CBMAL page. "
+                f"Retrying in {wait_seconds} seconds..."
+            )
+            time.sleep(wait_seconds)
+
+        except (URLError, SocketTimeout, TimeoutError) as exc:
+            last_error = exc
+
+            if attempt == max_attempts:
+                break
+
+            wait_seconds = attempt * 15
+            print(
+                f"Network error while accessing CBMAL page: {exc}. "
+                f"Retrying in {wait_seconds} seconds..."
+            )
+            time.sleep(wait_seconds)
+
+    raise RuntimeError(
+        f"Failed to access CBMAL page after {max_attempts} attempts. "
+        f"Last error: {last_error}"
     )
-
-    try:
-        with urlopen(request, timeout=30) as response:
-            return response.read().decode("utf-8", errors="replace")
-
-    except HTTPError as exc:
-        raise RuntimeError(
-            f"HTTP error while accessing CBMAL page: {exc.code} {exc.reason}"
-        ) from exc
-
-    except URLError as exc:
-        raise RuntimeError(
-            f"Network error while accessing CBMAL page: {exc.reason}"
-        ) from exc
-
 
 def text_after_icon(container, icon_class: str) -> str:
     icon = container.select_one(f"i.{icon_class}")
