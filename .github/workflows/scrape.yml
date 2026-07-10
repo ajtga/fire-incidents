@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,6 +39,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No dataset changes to commit."
           else
-            git commit -m "Update CBMAL fire incidents dataset"
+            git commit -m "chore: update CBMAL fire incidents dataset"
             git push
           fi
