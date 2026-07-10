@@ -1,0 +1,44 @@
+name: Scrape CBMAL fire incidents
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 03:00 in Maceió
+    - cron: "0 18 * * *"  # 15:00 in Maceió
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        run: python cbmal_fire_incidents_scraper.py
+
+      - name: Commit dataset changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add data/cbmal_fire_incidents.csv
+
+          if git diff --cached --quiet; then
+            echo "No dataset changes to commit."
+          else
+            git commit -m "Update CBMAL fire incidents dataset"
+            git push
+          fi
