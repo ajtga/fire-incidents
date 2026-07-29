@@ -277,7 +277,7 @@ def write_rows(csv_path: Path, rows: list[dict[str, str]]) -> None:
 def main() -> None:
     scraped_at_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    html_text = load_html()
+    html_text = load_html(max_attempts=10)
     extracted_rows = extract_occurrences(html_text, scraped_at_utc)
 
     if not extracted_rows:
