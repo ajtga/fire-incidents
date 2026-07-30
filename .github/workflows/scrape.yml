@@ -27,14 +27,16 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run scraper
+        id: scraper
         run: python cbmal_fire_incidents_scraper.py
+        continue-on-error: true
 
       - name: Commit dataset changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add data/cbmal_fire_incidents.csv
+          git add data/cbmal_fire_incidents.csv data/scraper_run_log.csv
 
           if git diff --cached --quiet; then
             echo "No dataset changes to commit."
@@ -42,3 +44,7 @@ jobs:
             git commit -m "chore: update CBMAL fire incidents dataset"
             git push
           fi
+
+      - name: Fail workflow if scraper failed
+        if: steps.scraper.outcome == 'failure'
+        run: exit 1
