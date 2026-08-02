@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import os
 import re
 import sys
@@ -12,6 +13,7 @@ from html import unescape
 from pathlib import Path
 from socket import timeout as SocketTimeout
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote_plus, urlencode
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
@@ -36,6 +38,8 @@ FIELDNAMES = [
     "local",
     "viaturas",
     "militares",
+    "latitude",
+    "longitude",
 ]
 
 DEDUP_FIELDS = [
@@ -69,6 +73,9 @@ RUN_LOG_FIELDNAMES = [
     "fire_incidents_after_merge",
     "new_fire_incidents_added",
     "dataset_changed",
+    "geocoding_attempted",
+    "geocoding_succeeded",
+    "geocoding_failed",
     "response_size_bytes",
     "source_url",
     "trigger",
@@ -92,6 +99,10 @@ class LoadResult:
     response_size_bytes: int | None = None
 
 
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_USER_AGENT = "cbmal-fire-incidents-scraper/1.0 (https://github.com)"
+
+
 def normalize_text(value: str | None) -> str:
     if not value:
         return ""
@@ -99,6 +110,101 @@ def normalize_text(value: str | None) -> str:
     text = unescape(value)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+def clean_address_for_geocoding(raw_address: str, cidade: str) -> str:
+    """Clean a CBMAL address string to maximize Nominatim geocoding success.
+
+    Typical patterns in the `local` column:
+      "RUA TAVARES BASTOS, UNIÃO DOS PALMARES-AL"
+      "RUA JÚLIO PAIXÃO DA SILVA, 14, ARAPIRACA-AL"
+      "LOTEAMNETO VILA RICA , RUA DOIS, QD G1 NUMERO B7 RIO LARGO, RIO LARGO-AL"
+      "RODOVIA AL - 101 NORTE, JAPARATINGA-AL"
+      "R. PROFA. MARIA ESTHER DA COSTA BARROS, 306 - JATIÚCA, MACEIÓ - AL, 57036-840, MACEIÓ-AL"
+
+    Strategy:
+      1. Strip the trailing "CITY-AL" suffix (redundant with the `cidade` column).
+      2. Remove lot / block / unit noise (QD, QUADRA, LOTE, Nº, NUMERO, CASA, etc.).
+      3. Remove building / condo prefixes that confuse Nominatim (EDF., ED., EDIFÍCIO,
+         RESIDENCIAL, CONJUNTO, CJ., CONJ.).
+      4. Remove CEP (zip code) patterns.
+      5. Collapse extra commas / whitespace.
+    """
+    addr = raw_address.strip()
+
+    # 1. Remove trailing city-state suffix  (e.g. ", MACEIÓ-AL" or ", MACEIÓ - AL")
+    addr = re.sub(r",\s*" + re.escape(cidade) + r"\s*-\s*AL\s*$", "", addr, flags=re.I)
+    # Also handle when the suffix uses a slightly different city spelling
+    addr = re.sub(r",\s*[A-ZÀ-Ú ]+\s*-\s*AL\s*$", "", addr, flags=re.I)
+
+    # 2. Remove CEP (zip codes like 57036-840)
+    addr = re.sub(r"\b\d{5}-\d{3}\b", "", addr)
+
+    # 3. Remove lot/block/unit noise
+    addr = re.sub(
+        r"\b(?:QD|QUADRA|LOTE|NUMERO|Nº|N°|CASA)\s*[A-Z0-9/-]+",
+        "", addr, flags=re.I,
+    )
+
+    # 4. Remove building / condo prefixes
+    addr = re.sub(
+        r"\b(?:EDF\.?|ED\.?|EDIFÍCIO|RESIDENCIAL|CONJUNTO|CJ\.?|CONJ\.?)\s+[A-ZÀ-Ú0-9 ]+,?",
+        "", addr, flags=re.I,
+    )
+
+    # 5. Remove "S/N" (sem número)
+    addr = re.sub(r"\bS/N\b", "", addr, flags=re.I)
+
+    # 6. Collapse artifacts: repeated commas, leading/trailing commas, extra whitespace
+    addr = re.sub(r"\s*,\s*,+\s*", ", ", addr)
+    addr = re.sub(r"\s+", " ", addr).strip(", ")
+
+    return addr
+
+
+def geocode_address(
+    raw_address: str,
+    cidade: str,
+) -> tuple[float | None, float | None]:
+    """Geocode an address using the Nominatim API.
+
+    Returns (latitude, longitude) or (None, None) on failure.
+    Respects Nominatim rate limits with a 1.5 s sleep after every request.
+    """
+    cleaned = clean_address_for_geocoding(raw_address, cidade)
+
+    # Build a structured query: street part + city + state
+    query = f"{cleaned}, {cidade}, Alagoas, Brazil"
+
+    params = urlencode({
+        "q": query,
+        "format": "jsonv2",
+        "limit": "1",
+        "countrycodes": "br",
+    })
+
+    url = f"{NOMINATIM_URL}?{params}"
+    request = Request(url, headers={"User-Agent": NOMINATIM_USER_AGENT})
+
+    try:
+        with urlopen(request, timeout=10) as response:
+            data = json.loads(response.read().decode("utf-8"))
+
+        if data:
+            lat = round(float(data[0]["lat"]), 7)
+            lon = round(float(data[0]["lon"]), 7)
+            print(f"  Geocoded: {query!r}  ->  ({lat}, {lon})")
+            return lat, lon
+
+        print(f"  Geocode MISS: {query!r}  ->  no results")
+        return None, None
+
+    except Exception as exc:
+        print(f"  Geocode ERROR: {query!r}  ->  {exc}")
+        return None, None
+
+    finally:
+        time.sleep(1.5)
 
 
 def make_incident_id(row: dict[str, str]) -> str:
@@ -315,7 +421,15 @@ def merge_rows(
         if not clean_row["incident_id"]:
             clean_row["incident_id"] = make_incident_id(clean_row)
 
-        merged[clean_row["incident_id"]] = clean_row
+        iid = clean_row["incident_id"]
+
+        # Preserve existing coordinates — don't overwrite with blanks
+        if iid in merged:
+            for coord in ("latitude", "longitude"):
+                if not clean_row.get(coord) and merged[iid].get(coord):
+                    clean_row[coord] = merged[iid][coord]
+
+        merged[iid] = clean_row
 
     return sorted(
         merged.values(),
@@ -357,6 +471,9 @@ def append_run_log(
     fire_incidents_after_merge: int = 0,
     new_fire_incidents_added: int = 0,
     dataset_changed: bool = False,
+    geocoding_attempted: int = 0,
+    geocoding_succeeded: int = 0,
+    geocoding_failed: int = 0,
     response_size_bytes: int | None = None,
     source_url: str = SOURCE_URL,
 ) -> None:
@@ -383,6 +500,9 @@ def append_run_log(
         "fire_incidents_after_merge": fire_incidents_after_merge,
         "new_fire_incidents_added": new_fire_incidents_added,
         "dataset_changed": dataset_changed,
+        "geocoding_attempted": geocoding_attempted,
+        "geocoding_succeeded": geocoding_succeeded,
+        "geocoding_failed": geocoding_failed,
         "response_size_bytes": response_size_bytes if response_size_bytes is not None else "",
         "source_url": source_url,
         "trigger": os.environ.get("GITHUB_EVENT_NAME", "local"),
@@ -460,6 +580,7 @@ def main() -> None:
         ]
 
         existing_rows = read_existing_rows(OUTPUT_FILE)
+        existing_ids = {row.get("incident_id") for row in existing_rows}
         merged_rows = merge_rows(existing_rows, new_fire_incidents)
 
         print(f"Occurrences extracted: {len(extracted_rows)}")
@@ -469,11 +590,41 @@ def main() -> None:
 
         dataset_changed = not (OUTPUT_FILE.exists() and len(merged_rows) == len(existing_rows))
 
+        # --- Geocode only truly new incidents ---
+        geocoding_attempted = 0
+        geocoding_succeeded = 0
+        geocoding_failed = 0
+
+        if dataset_changed:
+            truly_new = [
+                row for row in merged_rows
+                if row["incident_id"] not in existing_ids
+            ]
+            geocoding_attempted = len(truly_new)
+
+            if truly_new:
+                print(f"\nGeocoding {len(truly_new)} new incident(s)...")
+
+            for row in truly_new:
+                lat, lon = geocode_address(row.get("local", ""), row.get("cidade", ""))
+                row["latitude"] = str(lat) if lat is not None else ""
+                row["longitude"] = str(lon) if lon is not None else ""
+                if lat is not None:
+                    geocoding_succeeded += 1
+                else:
+                    geocoding_failed += 1
+
         if not dataset_changed:
             print("No new fire incident found. Dataset was not changed.")
         else:
             write_rows(OUTPUT_FILE, merged_rows)
             print(f"Dataset saved to: {OUTPUT_FILE}")
+
+        if geocoding_attempted:
+            print(
+                f"Geocoding results: {geocoding_succeeded}/{geocoding_attempted} succeeded, "
+                f"{geocoding_failed} failed."
+            )
 
         log_kwargs.update(
             run_finished_at_utc=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -486,6 +637,9 @@ def main() -> None:
             fire_incidents_after_merge=len(merged_rows),
             new_fire_incidents_added=len(merged_rows) - len(existing_rows),
             dataset_changed=dataset_changed,
+            geocoding_attempted=geocoding_attempted,
+            geocoding_succeeded=geocoding_succeeded,
+            geocoding_failed=geocoding_failed,
         )
         append_run_log(RUN_LOG_FILE, **log_kwargs)
 
