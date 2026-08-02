@@ -56,13 +56,16 @@ jobs:
 
           if [ "${{ steps.check_changes.outputs.incidents_changed }}" = "true" ]; then
             git add data/cbmal_fire_incidents.csv docs/index.html
+            COMMIT_MSG="chore: update CBMAL fire incidents dataset and interactive dashboard"
+          else
+            COMMIT_MSG="chore: update scraper telemetry run log"
           fi
           git add data/scraper_run_log.csv
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: update CBMAL fire incidents dataset and interactive dashboard"
+            git commit -m "$COMMIT_MSG"
             git push
           fi
 
