@@ -20,12 +20,14 @@ The automated scraper went live on **July 10, 2026**. The dataset contains recor
 
 This repository includes a standalone web dashboard hosted via **GitHub Pages**:
 
-👉 **[Launch Interactive Fire Map Dashboard](https://ajtga.github.io/fire-incidents/)**
+👉 **[Launch Interactive Dashboard](https://ajtga.github.io/fire-incidents/)**
+
+[![Interactive Dashboard Preview](docs/dashboard_preview.png)](https://ajtga.github.io/fire-incidents/)
 
 ### Dashboard Features
 - **Temporal Slider & Animation**: Play, pause, or step through dates to observe the spatial & temporal spread of fire responses over time.
 - **Heatmap & Pin Views**: Toggle between an aggregate density **Heatmap** and individual incident **Markers**.
-- **Incident Category Filters**: Filter by normalized incident type (*Edificação*, *Vegetação*, *Veículo*, *Diversos*).
+- **Incident Category Filters**: Filter by normalized incident type (*Building*, *Vegetation*, *Vehicle*, *Miscellaneous*).
 - **Alagoas Regional Theme & Multi-Language**: Styled with the official colors of the Alagoas flag (`#DA251E` Red, `#0077B9` Blue, `#F8C300` Gold) across UI components, gradients, and density ramps. Includes a 3-way language selector (**PT-BR**, **EN**, **ES**) with compact locale-aware date formatting.
 - **Incident Details**: Click any marker pin to view incident timestamps, detailed locations, city, responding vehicles, and personnel count.
 - **Automated Sync**: Regenerated automatically every 6 hours by GitHub Actions whenever dataset updates occur.
