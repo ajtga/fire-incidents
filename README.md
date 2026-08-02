@@ -16,6 +16,29 @@ The automated scraper went live on **July 10, 2026**. The dataset contains recor
 
 ---
 
+## 🗺️ Interactive Heatmap & Temporal Dashboard
+
+This repository includes a standalone web dashboard hosted via **GitHub Pages**:
+
+👉 **[Launch Interactive Fire Map Dashboard](https://ajtga.github.io/fire-incidents/)**
+
+### Dashboard Features
+- **Temporal Slider & Animation**: Play, pause, or step through dates to observe the spatial & temporal spread of fire responses over time.
+- **Heatmap & Pin Views**: Toggle between an aggregate density **Heatmap** and individual incident **Markers**.
+- **Incident Category Filters**: Filter by normalized incident type (*Edificação*, *Vegetação*, *Veículo*, *Diversos*).
+- **Alagoas Regional Theme & Multi-Language**: Styled with the official colors of the Alagoas flag (`#DA251E` Red, `#0077B9` Blue, `#F8C300` Gold) across UI components, gradients, and density ramps. Includes a 3-way language selector (**PT-BR**, **EN**, **ES**) with compact locale-aware date formatting.
+- **Incident Details**: Click any marker pin to view incident timestamps, detailed locations, city, responding vehicles, and personnel count.
+- **Automated Sync**: Regenerated automatically every 6 hours by GitHub Actions whenever dataset updates occur.
+
+---
+
+## 📊 Data Access & Raw Dataset
+
+The complete, cleaned, and geocoded dataset is available for public download in CSV format:
+
+📥 **[Download Raw CSV Dataset](https://raw.githubusercontent.com/ajtga/fire-incidents/main/data/cbmal_fire_incidents.csv)**
+
+
 ## ⚠️ Disclaimer: Coordinate Accuracy
 
 > **IMPORTANT**: The latitude and longitude coordinates in this dataset are **approximations** and must not be relied upon as exact locations.
@@ -35,7 +58,10 @@ Always treat coordinates as **rough geographic estimates** rather than exact pin
 ├── data/
 │   ├── cbmal_fire_incidents.csv      # Main dataset containing scraped fire incidents
 │   └── scraper_run_log.csv           # Execution log tracking scraper runs
+├── docs/
+│   └── index.html                    # Interactive Leaflet temporal heatmap dashboard
 └── scripts/
+    ├── generate_dashboard.py         # Standalone HTML dashboard generator script
     └── backfill_geocoding.py         # Utility script to backfill missing coordinates
 ```
 
@@ -57,6 +83,14 @@ To fetch the latest occurrences, deduplicate records, geocode addresses, and upd
 
 ```bash
 python cbmal_fire_incidents_scraper.py
+```
+
+### Generating the Interactive Dashboard
+
+To regenerate `docs/index.html` from `data/cbmal_fire_incidents.csv`:
+
+```bash
+python scripts/generate_dashboard.py
 ```
 
 ### Backfilling Missing Coordinates

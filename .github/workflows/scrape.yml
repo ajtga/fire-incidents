@@ -34,17 +34,20 @@ jobs:
         run: python cbmal_fire_incidents_scraper.py
         continue-on-error: true
 
-      - name: Commit dataset changes
+      - name: Generate interactive heatmap dashboard
+        run: python scripts/generate_dashboard.py
+
+      - name: Commit dataset and map changes
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add data/cbmal_fire_incidents.csv data/scraper_run_log.csv
+          git add data/cbmal_fire_incidents.csv data/scraper_run_log.csv docs/index.html
 
           if git diff --cached --quiet; then
-            echo "No dataset changes to commit."
+            echo "No changes to commit."
           else
-            git commit -m "chore: update CBMAL fire incidents dataset"
+            git commit -m "chore: update CBMAL fire incidents dataset and interactive dashboard"
             git push
           fi
 
