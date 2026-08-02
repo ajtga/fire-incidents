@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import logging
 import os
 import re
 import sys
@@ -18,6 +19,15 @@ from urllib.request import Request, urlopen
 from uuid import uuid4
 
 from bs4 import BeautifulSoup
+
+# Configure logging to sys.stdout with a clean ISO timestamp format.
+# StreamHandler handles flushing automatically.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%SZ",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
 
 SOURCE_URL = "https://www.cbm.al.gov.br/paginas/ocorrencias/true"
@@ -193,14 +203,14 @@ def geocode_address(
         if data:
             lat = round(float(data[0]["lat"]), 7)
             lon = round(float(data[0]["lon"]), 7)
-            print(f"  Geocoded: {query!r}  ->  ({lat}, {lon})")
+            logging.info(f"Geocoded: {query!r} -> ({lat}, {lon})")
             return lat, lon
 
-        print(f"  Geocode MISS: {query!r}  ->  no results")
+        logging.warning(f"Geocode MISS: {query!r} -> no results")
         return None, None
 
     except Exception as exc:
-        print(f"  Geocode ERROR: {query!r}  ->  {exc}")
+        logging.error(f"Geocode ERROR: {query!r} -> {exc}")
         return None, None
 
     finally:
@@ -216,7 +226,7 @@ def make_incident_id(row: dict[str, str]) -> str:
     return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:16]
 
 
-def load_html(url: str = SOURCE_URL, max_attempts: int = 3) -> LoadResult:
+def load_html(url: str = SOURCE_URL, max_attempts: int = 1) -> LoadResult:
     import random
 
     user_agents = [
@@ -257,9 +267,9 @@ def load_html(url: str = SOURCE_URL, max_attempts: int = 3) -> LoadResult:
         )
 
         try:
-            print(f"Fetching CBMAL page. Attempt {attempt}/{max_attempts}...")
+            logging.info(f"Fetching CBMAL page. Attempt {attempt}/{max_attempts}...")
 
-            with urlopen(request, timeout=15) as response:
+            with urlopen(request, timeout=60) as response:
                 raw_bytes = response.read()
                 result.html = raw_bytes.decode("utf-8", errors="replace")
                 result.success = True
@@ -281,7 +291,7 @@ def load_html(url: str = SOURCE_URL, max_attempts: int = 3) -> LoadResult:
                 break
 
             wait_seconds = attempt * 5
-            print(
+            logging.warning(
                 f"Temporary HTTP error {exc.code} while accessing CBMAL page. "
                 f"Retrying in {wait_seconds} seconds..."
             )
@@ -296,7 +306,7 @@ def load_html(url: str = SOURCE_URL, max_attempts: int = 3) -> LoadResult:
                 break
 
             wait_seconds = attempt * 5
-            print(
+            logging.warning(
                 f"Network error while accessing CBMAL page: {exc}. "
                 f"Retrying in {wait_seconds} seconds..."
             )
@@ -555,7 +565,7 @@ def main() -> None:
                 error_message=result.last_error,
             )
             append_run_log(RUN_LOG_FILE, **log_kwargs)
-            print(f"ERROR: {result.last_error}")
+            logging.error(f"ERROR: {result.last_error}")
             sys.exit(1)
 
         extracted_rows = extract_occurrences(result.html, scraped_at_utc)
@@ -570,7 +580,7 @@ def main() -> None:
                 error_message=error_msg,
             )
             append_run_log(RUN_LOG_FILE, **log_kwargs)
-            print(f"ERROR: {error_msg}")
+            logging.error(f"ERROR: {error_msg}")
             sys.exit(1)
 
         new_fire_incidents = [
@@ -583,10 +593,10 @@ def main() -> None:
         existing_ids = {row.get("incident_id") for row in existing_rows}
         merged_rows = merge_rows(existing_rows, new_fire_incidents)
 
-        print(f"Occurrences extracted: {len(extracted_rows)}")
-        print(f"Fire incidents extracted: {len(new_fire_incidents)}")
-        print(f"Existing fire incidents: {len(existing_rows)}")
-        print(f"Merged fire incidents: {len(merged_rows)}")
+        logging.info(f"Occurrences extracted: {len(extracted_rows)}")
+        logging.info(f"Fire incidents extracted: {len(new_fire_incidents)}")
+        logging.info(f"Existing fire incidents: {len(existing_rows)}")
+        logging.info(f"Merged fire incidents: {len(merged_rows)}")
 
         dataset_changed = not (OUTPUT_FILE.exists() and len(merged_rows) == len(existing_rows))
 
@@ -603,7 +613,7 @@ def main() -> None:
             geocoding_attempted = len(truly_new)
 
             if truly_new:
-                print(f"\nGeocoding {len(truly_new)} new incident(s)...")
+                logging.info(f"Geocoding {len(truly_new)} new incident(s)...")
 
             for row in truly_new:
                 lat, lon = geocode_address(row.get("local", ""), row.get("cidade", ""))
@@ -615,13 +625,13 @@ def main() -> None:
                     geocoding_failed += 1
 
         if not dataset_changed:
-            print("No new fire incident found. Dataset was not changed.")
+            logging.info("No new fire incident found. Dataset was not changed.")
         else:
             write_rows(OUTPUT_FILE, merged_rows)
-            print(f"Dataset saved to: {OUTPUT_FILE}")
+            logging.info(f"Dataset saved to: {OUTPUT_FILE}")
 
         if geocoding_attempted:
-            print(
+            logging.info(
                 f"Geocoding results: {geocoding_succeeded}/{geocoding_attempted} succeeded, "
                 f"{geocoding_failed} failed."
             )
@@ -655,7 +665,7 @@ def main() -> None:
             error_message=str(exc),
         )
         append_run_log(RUN_LOG_FILE, **log_kwargs)
-        print(f"ERROR: {exc}")
+        logging.error(f"ERROR: {exc}")
         sys.exit(1)
 
 
