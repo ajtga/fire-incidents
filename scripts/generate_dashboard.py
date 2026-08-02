@@ -128,8 +128,11 @@ def generate_html(incidents):
       padding: 0;
     }}
 
-    body {{
+    body, button, input, select, textarea {{
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }}
+
+    body {{
       background-color: var(--bg-dark);
       color: var(--text-main);
       height: 100vh;
