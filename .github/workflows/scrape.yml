@@ -11,10 +11,14 @@ env:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    outputs:
+      incidents_changed: ${{ steps.check_changes.outputs.incidents_changed }}
 
     steps:
       - name: Checkout repository
@@ -72,3 +76,29 @@ jobs:
       - name: Fail workflow if scraper failed
         if: steps.scraper.outcome == 'failure'
         run: exit 1
+
+  deploy:
+    needs: scrape
+    if: needs.scrape.outputs.incidents_changed == 'true'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
