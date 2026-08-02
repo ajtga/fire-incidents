@@ -6,6 +6,9 @@ on:
 
   workflow_dispatch:
 
+env:
+  PYTHONUNBUFFERED: "1"
+
 permissions:
   contents: write
 
