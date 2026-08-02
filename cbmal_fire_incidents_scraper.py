@@ -100,7 +100,7 @@ class LoadResult:
 
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-NOMINATIM_USER_AGENT = "cbmal-fire-incidents-scraper/1.0 (https://github.com)"
+NOMINATIM_USER_AGENT = "cbmal-fire-incidents-scraper/1.0 (https://github.com/ajtga/fire-incidents)"
 
 
 def normalize_text(value: str | None) -> str:
