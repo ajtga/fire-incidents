@@ -107,7 +107,7 @@ The collection and processing of public incident records from the State of Alago
 This project adopts a dual-licensing structure to distinguish between the software code and the compiled dataset:
 
 - **Software / Code**: The scraper scripts, utilities, and automation workflows are licensed under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
-- **Dataset**: The compiled fire incidents dataset (`data/cbmal_fire_incidents.csv`) is released under the [Open Database License (ODbL 1.0)](https://opendatacommons.org/licenses/odbl/).
+- **Dataset**: The compiled fire incidents dataset (`data/cbmal_fire_incidents.csv`) is released under the [Open Database License (ODbL 1.0)](LICENSE-DATA) (see [online version](https://opendatacommons.org/licenses/odbl/)).
 - **Attribution**:
   - Primary occurrence data is provided by [Corpo de Bombeiros Militar de Alagoas (CBMAL)](https://www.cbm.al.gov.br/).
   - Geocoding location data is powered by [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors using the Nominatim API, available under the Open Database License ([ODbL](https://opendatacommons.org/licenses/odbl/)).
