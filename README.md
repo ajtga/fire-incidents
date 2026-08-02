@@ -6,6 +6,16 @@ The project aggregates incident data into a structured CSV dataset and enriches 
 
 ---
 
+## Context & Motivation
+
+I needed historical, geocoded data on fire incidents in Alagoas for some regional analysis. After a thorough online search (including the CBMAL website and the [Alagoas Open Data Portal](https://dados.al.gov.br/catalogo/dataset?q=incendios)), it became clear that while the fire department registers incidents internally and satellite data (like INPE) tracks heat signatures, a public dataset of operational fire department responses in Alagoas simply isn't available without a formal legal request.
+
+I used this lack of open data as an excuse to learn how to set up an automated scraper using GitHub Actions. This project fulfills two needs: acquiring the data I needed for my analysis, and picking up a new skill in the process.
+
+The automated scraper went live on **July 10, 2026**. The dataset contains records starting from **July 6, 2026**, as data collected during manual test runs was kept.
+
+---
+
 ## ⚠️ Disclaimer: Coordinate Accuracy
 
 > **IMPORTANT**: The latitude and longitude coordinates in this dataset are **approximations** and must not be relied upon as exact locations.
