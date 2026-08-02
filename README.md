@@ -132,7 +132,7 @@ The main dataset (`data/cbmal_fire_incidents.csv`) includes the following column
 To handle the characteristics of the CBMAL server, we adopt a **fail-fast** scraping strategy:
 
 - **Diagnostic Findings**: Log audits revealed that the CBMAL portal runs on a legacy stack (`Apache/2.4.25` and `PHP/5.6.40`) which experiences significant transient latency (baseline page fetch time is 5.5s to 8.5s). 
-- **Fail-Fast Approach**: Rather than consuming multiple retries that increase load on the target server during outages, the scraper is configured to try **only once** per execution but with an increased timeout of **60 seconds**. 
+- **Fail-Fast Approach**: Rather than consuming multiple retries that increase load on the target server during outages, the scraper is configured to try **only once** per execution but with an increased timeout of **30 seconds**. 
 - **Scheduling Intention**: The scraper runs on a strict **6-hour schedule** (`18 */6 * * *`). This frequency is maintained to prevent data loss from rolling occurrence lists. We explicitly choose **not** to skip runs if a previous run was successful in the past 24 hours.
 - **Handling Failures**: Transient connection failures are accepted as expected server-side events, and subsequent scheduled executions naturally backfill missing data.
 

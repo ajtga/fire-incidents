@@ -226,7 +226,7 @@ def make_incident_id(row: dict[str, str]) -> str:
     return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:16]
 
 
-def load_html(url: str = SOURCE_URL, max_attempts: int = 1) -> LoadResult:
+def load_html(url: str = SOURCE_URL, max_attempts: int = 1, timeout: int = 30) -> LoadResult:
     import random
 
     user_agents = [
@@ -269,7 +269,7 @@ def load_html(url: str = SOURCE_URL, max_attempts: int = 1) -> LoadResult:
         try:
             logging.info(f"Fetching CBMAL page. Attempt {attempt}/{max_attempts}...")
 
-            with urlopen(request, timeout=60) as response:
+            with urlopen(request, timeout=timeout) as response:
                 raw_bytes = response.read()
                 result.html = raw_bytes.decode("utf-8", errors="replace")
                 result.success = True
