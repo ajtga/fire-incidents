@@ -34,7 +34,19 @@ jobs:
         run: python cbmal_fire_incidents_scraper.py
         continue-on-error: true
 
+      - name: Check if dataset or dashboard needs updating
+        id: check_changes
+        run: |
+          if ! git diff --quiet data/cbmal_fire_incidents.csv || [ ! -f docs/index.html ]; then
+            echo "incidents_changed=true" >> $GITHUB_OUTPUT
+            echo "New fire incidents detected or dashboard missing."
+          else
+            echo "incidents_changed=false" >> $GITHUB_OUTPUT
+            echo "No new fire incidents added."
+          fi
+
       - name: Generate interactive heatmap dashboard
+        if: steps.check_changes.outputs.incidents_changed == 'true'
         run: python scripts/generate_dashboard.py
 
       - name: Commit dataset and map changes
@@ -42,7 +54,10 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add data/cbmal_fire_incidents.csv data/scraper_run_log.csv docs/index.html
+          if [ "${{ steps.check_changes.outputs.incidents_changed }}" = "true" ]; then
+            git add data/cbmal_fire_incidents.csv docs/index.html
+          fi
+          git add data/scraper_run_log.csv
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
