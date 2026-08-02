@@ -92,7 +92,24 @@ To handle the characteristics of the CBMAL server, we adopt a **fail-fast** scra
 
 ---
 
-## Attribution & Data License
+## Legal Basis & Data Sourcing
 
-Geocoding location data is powered by [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors using the Nominatim API, available under the Open Database License ([ODbL](https://opendatacommons.org/licenses/odbl/)).
+The collection and processing of public incident records from the State of Alagoas Military Fire Brigade (*Corpo de Bombeiros Militar de Alagoas - CBMAL*) is governed by the following Brazilian legal frameworks:
+
+- **Access to Information Law (*Lei de Acesso à Informação* - Lei nº 12.527/2011)**: Under Article 8, public agencies are mandated to ensure active transparency and promote the availability of public information in automated, machine-readable formats.
+- **Copyright Law (*Lei de Direitos Autorais* - Lei nº 9.610/1998)**: Article 8, IV explicitly excludes official acts, government communications, and public administration reports from copyright protection, placing them in the public domain for public interest reuse.
+- **General Personal Data Protection Law (*Lei Geral de Proteção de Dados* - Lei nº 13.709/2018)**: The scraper extracts exclusively operational public safety metadata (incident categories, general location descriptions, dispatch counts, dates/times). It does not extract or process personal identifying data of private citizens.
+
+---
+
+## License & Attribution
+
+This project adopts a dual-licensing structure to distinguish between the software code and the compiled dataset:
+
+- **Software / Code**: The scraper scripts, utilities, and automation workflows are licensed under the [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
+- **Dataset**: The compiled fire incidents dataset (`data/cbmal_fire_incidents.csv`) is released under the [Open Database License (ODbL 1.0)](https://opendatacommons.org/licenses/odbl/).
+- **Attribution**:
+  - Primary occurrence data is provided by [Corpo de Bombeiros Militar de Alagoas (CBMAL)](https://www.cbm.al.gov.br/).
+  - Geocoding location data is powered by [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors using the Nominatim API, available under the Open Database License ([ODbL](https://opendatacommons.org/licenses/odbl/)).
+
 
