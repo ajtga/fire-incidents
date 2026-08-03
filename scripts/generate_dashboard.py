@@ -37,7 +37,7 @@ def load_incidents(csv_path: Path):
         print(f"Warning: {csv_path} does not exist.")
         return incidents
 
-    with open(csv_path, mode="r", encoding="utf-8") as f:
+    with open(csv_path, mode="r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         for row in reader:
             lat_str = row.get("latitude", "").strip()
@@ -1126,6 +1126,7 @@ def generate_html(incidents):
             <i class="fa-solid fa-flag"></i> ${{dict.reportInaccuracy}}
           </a>
         </div>
+        <div style="display: none;" data-incident-id="${{inc.id}}">${{inc.id}}</div>
       `;
     }}
 
