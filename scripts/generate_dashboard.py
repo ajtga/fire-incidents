@@ -933,8 +933,8 @@ def generate_html(incidents):
         downloadModalDisclaimerBody: "As coordenadas geográficas são aproximações automatizadas (Nominatim) ou centroides de bairros/municípios, não constituindo dados oficiais de localização exata de emergência.",
         cancel: "Cancelar",
         confirmDownload: "Baixar cbmal_fire_incidents.csv",
-        popupApprox: "Aproximação",
-        reportInaccuracy: "Reportar Inexatidão"
+        popupApprox: "Localização Aproximada",
+        reportInaccuracy: "Sugerir Correção"
       }},
       en: {{
         title: "Alagoas Fire Incidents",
@@ -969,8 +969,8 @@ def generate_html(incidents):
         downloadModalDisclaimerBody: "Geographic coordinates are automated approximations (via Nominatim) or city/neighborhood centroids, and must not be used as exact emergency dispatch locations.",
         cancel: "Cancel",
         confirmDownload: "Download cbmal_fire_incidents.csv",
-        popupApprox: "Approximation",
-        reportInaccuracy: "Report Inaccuracy"
+        popupApprox: "Approximate Location",
+        reportInaccuracy: "Suggest Correction"
       }},
       es: {{
         title: "Incendios en Alagoas",
@@ -1005,8 +1005,8 @@ def generate_html(incidents):
         downloadModalDisclaimerBody: "Las coordenadas geográficas son aproximaciones automatizadas (Nominatim) o centroides de ciudades/barrios, y no constituyen datos de ubicación exacta de emergencia.",
         cancel: "Cancelar",
         confirmDownload: "Descargar cbmal_fire_incidents.csv",
-        popupApprox: "Aproximación",
-        reportInaccuracy: "Reportar Inexactitud"
+        popupApprox: "Ubicación Aproximada",
+        reportInaccuracy: "Sugerir Corrección"
       }}
     }};
 
@@ -1096,17 +1096,17 @@ def generate_html(incidents):
         </div>
       ` : '';
 
-      const issueTitle = encodeURIComponent(`[Coordenadas Inexatas] Ocorrência ${{inc.id}}`);
+      const issueTitle = encodeURIComponent(`[Data Correction] Incident ${{inc.id}}`);
       const issueBody = encodeURIComponent(
-        `### Reportar Inexatidão de Coordenadas / Report Coordinate Inaccuracy\\n\\n` +
-        `- **ID da Ocorrência / Incident ID**: ${{inc.id}}\\n` +
-        `- **Data e Hora / Date & Time**: ${{inc.date}} ${{inc.time}}\\n` +
-        `- **Município / City**: ${{inc.city}}\\n` +
-        `- **Endereço Relatado / Location**: ${{inc.location}}\\n` +
-        `- **Coordenadas Atuais / Current Coords**: ${{inc.lat}}, ${{inc.lng}}\\n\\n` +
+        `### Suggest Data Correction\\n\\n` +
+        `- **Incident ID**: ${{inc.id}}\\n` +
+        `- **Date & Time**: ${{inc.date}} ${{inc.time}}\\n` +
+        `- **City**: ${{inc.city}}\\n` +
+        `- **Reported Location**: ${{inc.location}}\\n` +
+        `- **Current Coords**: ${{inc.lat}}, ${{inc.lng}}\\n\\n` +
         `---\\n` +
-        `**Coordenadas Corretas ou Sugestão / Correct Coordinates or Suggestion**:\\n` +
-        `(Por favor insira o endereço correto ou latitude, longitude aqui)`
+        `**Correction or Suggestion**:\\n` +
+        `(Please enter the correct location, coordinates, or other missing/incorrect data here)`
       );
       const reportIssueUrl = `https://github.com/ajtga/fire-incidents/issues/new?title=${{issueTitle}}&body=${{issueBody}}`;
 
