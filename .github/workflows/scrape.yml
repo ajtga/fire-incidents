@@ -60,9 +60,9 @@ jobs:
 
           if [ "${{ steps.check_changes.outputs.incidents_changed }}" = "true" ]; then
             git add data/cbmal_fire_incidents.csv docs/index.html
-            COMMIT_MSG="chore: update CBMAL fire incidents dataset and interactive dashboard"
+            COMMIT_MSG="chore(data): update dataset and dashboard"
           else
-            COMMIT_MSG="chore: update scraper telemetry run log"
+            COMMIT_MSG="chore(telemetry): update scraper run log (no data changes)"
           fi
           git add data/scraper_run_log.csv
 
@@ -76,3 +76,28 @@ jobs:
       - name: Fail workflow if scraper failed
         if: steps.scraper.outcome == 'failure'
         run: exit 1
+
+  deploy_dashboard:
+    needs: scrape
+    if: needs.scrape.outputs.incidents_changed == 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: 'docs'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
