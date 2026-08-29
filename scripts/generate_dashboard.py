@@ -1144,7 +1144,7 @@ def generate_html(incidents):
         zoomControl: false
       }});
 
-      L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+      L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png?key=cb1_2i5x_1_17dd85bdb4f6cfa2b72a893d', {{
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> | Data: CBMAL | Created by <a href="https://github.com/ajtga" target="_blank">ajtga</a> (<a href="https://github.com/ajtga/fire-incidents" target="_blank">GitHub</a>)',
         subdomains: 'abcd',
         maxZoom: 19
